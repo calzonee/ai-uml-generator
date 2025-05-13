@@ -15,6 +15,9 @@ const state = reactive({
   error: null,
 })
 
+const api = axios.create({
+  baseURL: import.meta.env.VITE_BACKEND_URL,
+})
 const generatePlantUML = async () => {
   if (!state.prompt) {
     alert('Bitte einen Prompt eingeben.')
@@ -23,37 +26,18 @@ const generatePlantUML = async () => {
   state.loading = true
   state.error = null
   try {
-    const response = await axios.post('/api/generate', {
+    const { data } = await api.post('/api/generate', {
       prompt: state.prompt,
-      llm: state.selectedLLM,
+      llm: state.selectedLLM,      // falls Backend mehrere LLMs unterstützen soll
     })
-    state.plantumlCode = response.data.plantumlCode
-    await renderDiagram()
+    // Backend liefert jetzt { plantuml: string, imageBase64: string }
+    state.plantumlCode = data.plantuml
+    state.diagramUrl = `data:image/png;base64,${data.imageBase64}`
   } catch (err) {
-    state.error = err.message
+    state.error = err.response?.data?.error || err.message
+    state.diagramUrl = null
   } finally {
     state.loading = false
-  }
-}
-
-const renderDiagram = async () => {
-  if (!state.plantumlCode) {
-    state.diagramUrl = null
-    return
-  }
-  try {
-    const response = await axios.post('/api/render', {
-      plantumlCode: state.plantumlCode,
-      format: 'png',
-    }, { responseType: 'blob' })
-    const url = URL.createObjectURL(response.data)
-    if (state.diagramUrl) {
-      URL.revokeObjectURL(state.diagramUrl)
-    }
-    state.diagramUrl = url
-  } catch (err) {
-    state.error = 'Diagramm konnte nicht gerendert werden: ' + err.message
-    state.diagramUrl = null
   }
 }
 
@@ -71,14 +55,36 @@ const downloadDiagram = () => {
 <template>
   <main>
     <h1>UML-Diagramm Generator</h1>
-    <LLMSelector v-model:selectedLLM="state.selectedLLM" />
-    <PromptInput v-model:prompt="state.prompt" />
-    <button :disabled="state.loading" @click="generatePlantUML">
-      {{ state.loading ? 'Generiere ...' : 'Generieren' }}
-    </button>
-    <div v-if="state.error" style="color: red; margin-top: 1em;">{{ state.error }}</div>
 
-    <PlantUmlEditor v-model:plantumlCode="state.plantumlCode" @updateDiagram="renderDiagram" />
-    <DiagramDisplay v-if="state.diagramUrl" :diagramUrl="state.diagramUrl" @download="downloadDiagram" />
+    <!-- Auswahl des LLM, falls ihr später mehrere betreibt -->
+    <LLMSelector v-model:selectedLLM="state.selectedLLM" />
+
+    <!-- Prompt-Eingabe -->
+    <PromptInput v-model:prompt="state.prompt" />
+
+    <!-- Auslösen -->
+    <button :disabled="state.loading" @click="generatePlantUML">
+      {{ state.loading ? 'Generiere …' : 'Generieren' }}
+    </button>
+
+    <!-- Fehlermeldung -->
+    <div v-if="state.error" class="error">{{ state.error }}</div>
+
+    <!-- PlantUML-Quelltext zum Nachbearbeiten -->
+    <PlantUmlEditor v-model:plantumlCode="state.plantumlCode" />
+
+    <!-- Gerendertes Diagramm & Download-Button -->
+    <DiagramDisplay
+      v-if="state.diagramUrl"
+      :diagramUrl="state.diagramUrl"
+      @download="downloadDiagram"
+    />
   </main>
 </template>
+
+<style>
+.error {
+  color: red;
+  margin-top: 1em;
+}
+</style>

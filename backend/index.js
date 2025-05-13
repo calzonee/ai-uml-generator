@@ -1,43 +1,86 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const plantumlEncoder = require('plantuml-encoder');
+// index.js
+import express from 'express';
+import cors from 'cors';
+import bodyParser from 'body-parser';
+import { spawn } from 'child_process';
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
+const OLLAMA_API_URL = process.env.OLLAMA_API_URL || 'http://localhost:11434/v1/chat/completions';
+const LLAMA_MODEL = process.env.LLAMA_MODEL || 'llama3';
 app.use(bodyParser.json());
+app.use(cors());
 
-// Dummy LLM: wandelt Prompt in PlantUML Text um (minimales Klassendiagramm)
-function dummyLLM(prompt) {
-  const sanitized = prompt.replace(/[^a-zA-Z0-9 ]/g, '').trim();
-  return `
-@startuml
-class ${sanitized} {
-}
-@enduml
+// 1) Llama-Funktion (ruft Ollama-API auf)
+async function llamaLLM(prompt) {
+  const systemPrompt = `
+You are an assistant that transforms user prompts into valid PlantUML class diagrams.
+Respond with PlantUML only (between @startuml and @enduml), no extra text.
   `.trim();
-}
 
-// PlantUML Server URL Builder (PNG)
-function getPlantUMLImageURL(plantumlText) {
-  const encoded = plantumlEncoder.encode(plantumlText);
-  return `http://www.plantuml.com/plantuml/png/${encoded}`;
-}
-
-app.post('/api/generate', (req, res) => {
-  const { prompt } = req.body;
-  if (!prompt || typeof prompt !== 'string' || prompt.trim() === '') {
-    res.status(400).json({ error: 'Prompt is required and must be a non-empty string.' });
-    return;
-  }
-
-  const plantUMLText = dummyLLM(prompt);
-  const imageUrl = getPlantUMLImageURL(plantUMLText);
-
-  res.json({
-    plantuml: plantUMLText,
-    imageUrl,
+  const response = await fetch(OLLAMA_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: LLAMA_MODEL,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user',   content: prompt }
+      ]
+    })
   });
+  if (!response.ok) {
+    throw new Error(`Ollama API error: ${response.status} ${await response.text()}`);
+  }
+  const { choices } = await response.json();
+  return choices[0].message.content.trim();
+}
+
+// 2) PlantUML-Renderer (Java-JAR via stdin/stdout)
+async function renderPlantUML(umlText) {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(
+      'java',
+      ['-jar', '/usr/local/bin/plantuml.jar', '-pipe', '-tpng'],
+      { stdio: ['pipe', 'pipe', 'inherit'] }
+    );
+
+    const chunks = [];
+    proc.stdout.on('data', (b) => chunks.push(b));
+    proc.on('close', (code) => {
+      if (code === 0) resolve(Buffer.concat(chunks));
+      else reject(new Error(`PlantUML exited with code ${code}`));
+    });
+
+    proc.stdin.write(umlText);
+    proc.stdin.end();
+  });
+}
+
+app.post('/api/generate', async (req, res) => {
+  try {
+    const { prompt } = req.body;
+    if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
+      return res.status(400).json({ error: 'Prompt must be a non-empty string.' });
+    }
+
+    // 1) Diagramm-Text von Llama holen
+    const plantUMLText = await llamaLLM(prompt);
+
+    // 2) Diagramm als PNG rendern
+    const pngBuffer = await renderPlantUML(plantUMLText);
+
+    // 3) PNG als Base64 in JSON zurückgeben
+    res.json({
+      "success": true,
+      plantuml: plantUMLText,
+      imageBase64: pngBuffer.toString('base64')
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message || 'Internal error' });
+  }
 });
 
 app.listen(port, () => {
