@@ -1,0 +1,5 @@
+Routen
+
+/generate
+erwartet prompt
+return json(diagramm in plantuml Syntax, Bild als Base64-String)

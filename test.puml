@@ -1,0 +1,29 @@
+@startuml
+
+left to right direction
+
+class Type0 {
+  + match(input) => "accept"
+}
+
+class Type1 {
+  + match(input) = "reduced_to" as Type2
+}
+
+class Type2 {
+  + match(str) = match(str[0])*match(tail)
+}
+
+class MatchEmpty {
+  + match(string) = return false
+}
+
+class Match(str) {
+  + match(string) = return str.length() == 0
+}
+
+Type0 --> Type1
+Type1 --> Type2
+Type2 --> MatchEmpty
+
+@enduml

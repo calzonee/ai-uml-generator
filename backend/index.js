@@ -15,7 +15,7 @@ app.use(cors());
 // 1) Llama-Funktion (ruft Ollama-API auf)
 async function llamaLLM(prompt) {
   const systemPrompt = `
-You are an assistant that transforms user prompts into valid PlantUML class diagrams.
+You are an assistant that transforms user prompts into valid PlantUML diagrams.
 Respond with PlantUML only (between @startuml and @enduml), no extra text.
   `.trim();
 
@@ -67,7 +67,7 @@ app.post('/api/generate', async (req, res) => {
 
     // 1) Diagramm-Text von Llama holen
     const plantUMLText = await llamaLLM(prompt);
-
+    console.log('Generated PlantUML:', plantUMLText);
     // 2) Diagramm als PNG rendern
     const pngBuffer = await renderPlantUML(plantUMLText);
 
