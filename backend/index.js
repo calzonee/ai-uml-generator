@@ -57,29 +57,34 @@ async function renderPlantUML(umlText) {
     proc.stdin.end();
   });
 }
-
 app.post('/api/generate', async (req, res) => {
+  const { prompt } = req.body;
+  if (!prompt?.trim()) return res.status(400).json({ error: 'Prompt must be a non-empty string.' });
+
+  let plantUMLText;
   try {
-    const { prompt } = req.body;
-    if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
-      return res.status(400).json({ error: 'Prompt must be a non-empty string.' });
-    }
-
-    // 1) Diagramm-Text von Llama holen
-    const plantUMLText = await llamaLLM(prompt);
+    plantUMLText = await llamaLLM(prompt);
     console.log('Generated PlantUML:', plantUMLText);
-    // 2) Diagramm als PNG rendern
-    const pngBuffer = await renderPlantUML(plantUMLText);
+  } catch (err) {
+    console.error('LLM error', err);
+    return res.status(500).json({ error: 'LLM error: '+err.message });
+  }
 
-    // 3) PNG als Base64 in JSON zurückgeben
-    res.json({
-      "success": true,
+  try {
+    const pngBuffer = await renderPlantUML(plantUMLText);
+    return res.json({
+      success: true,
       plantuml: plantUMLText,
       imageBase64: pngBuffer.toString('base64')
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message || 'Internal error' });
+    console.error('Render error', err);
+    // 200 damit Frontend die plantUML-Ausgabe bekommt
+    return res.json({
+      success: false,
+      plantuml: plantUMLText,
+      error: 'Render error: '+err.message
+    });
   }
 });
 
