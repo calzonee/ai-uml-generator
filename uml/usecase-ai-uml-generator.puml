@@ -1,0 +1,39 @@
+@startuml
+left to right direction
+skinparam backgroundColor #FFFFFF
+skinparam usecase {
+  BackgroundColor #D5E8D4
+  BorderColor DarkGreen
+  ArrowColor Black
+}
+
+actor User
+
+rectangle "ChatUML System" {
+
+  package "Diagramm erstellen" {
+    (Prompt eingeben)
+    (Direkt UML im Editor schreiben)
+    (Diagramm mit weiterem Prompt verfeinern)
+  }
+
+  package "Diagramm bearbeiten" {
+    (UML-Code bearbeiten)
+    (Style-Optionen per Prompt senden)
+  }
+
+  package "Diagramm teilen & exportieren" {
+    (Diagramm-Link teilen)
+    (Diagramm herunterladen)
+  }
+
+}
+
+User --> (Prompt eingeben)
+User --> (Direkt UML im Editor schreiben)
+User --> (Diagramm mit weiterem Prompt verfeinern)
+User --> (UML-Code bearbeiten)
+User --> (Style-Optionen per Prompt senden)
+User --> (Diagramm-Link teilen)
+User --> (Diagramm herunterladen)
+@enduml

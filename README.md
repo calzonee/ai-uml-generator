@@ -11,6 +11,8 @@ Das System besteht aus modularen Services:
 - **LLM-Service**: Verarbeitet die Eingabe lokal mit LLaMA und generiert PlantUML-Syntax
 - **PlantUML-Service**: Wandelt die PlantUML-Beschreibung in ein PNG-Diagramm um
 
+![alt text](uml/sequenz-ai-uml-generator.png)
+
 ## Merkmale
 
 - Unterstützung natürlicher Sprache und (zukünftig) Quellcode

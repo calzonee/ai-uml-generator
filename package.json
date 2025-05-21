@@ -8,6 +8,9 @@
     "plantuml-encoder": "^1.4.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.9"
+    "autoprefixer": "^10.4.21",
+    "nodemon": "^3.1.9",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^4.1.7"
   }
 }

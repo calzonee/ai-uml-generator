@@ -37,6 +37,8 @@ Ziel des Projekts ist die Entwicklung einer webbasierten Anwendung, die es User 
 **Frontend:**
 - Vue.js (Composition API)
 - Vite für Buildprozess
+- Code Mirror
+- Axios
 
 **Backend:**
 - Node.js, Express.js
@@ -75,13 +77,14 @@ Ziel des Projekts ist die Entwicklung einer webbasierten Anwendung, die es User 
 | Skalierbarkeit und Load Balancing                        | niedrig |
 
 # Use Cases
+![alt text](uml/usecase-ai-uml-generator.png)
 
 # Stakeholder
 
 # Zeitlicher Rahmen
-Gesamtzeit: 3-4 Monate
-Phase 1: Definition & Anforderungsanalyse (2 Wochen)
-Phase 2: Grundfunktionalitäten, UML-Editor, Prompt UI (2 Wochen)
-Phase 3: LLM Integration, Fine Tuning (2-4 Wochen)
-Phase 4: UI & UX + Tests (2 Wochen)
-Phase 5: Nachhaltigkeitsoptimierung, Doku (Restzeit)
+- **Gesamtzeit:** 3-4 Monate
+- **Phase 1:** Definition & Anforderungsanalyse (2 Wochen)
+- **Phase 2:** Grundfunktionalitäten, UML-Editor, Prompt UI (2 Wochen)
+- **Phase 3:** LLM Integration, Fine Tuning (2-4 Wochen)
+- **Phase 4:** UI & UX + Tests (2 Wochen)
+- **Phase 5:** Nachhaltigkeitsoptimierung, Doku (Restzeit)

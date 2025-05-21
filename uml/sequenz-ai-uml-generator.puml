@@ -1,0 +1,41 @@
+@startuml
+' Farbdefinitionen
+skinparam backgroundColor #FFFFFF
+skinparam sequence {
+    ParticipantBorderColor Black
+    LifeLineBorderColor Black
+    LifeLineBackgroundColor #DDDDDD
+    ActorBorderColor Black
+    ActorBackgroundColor #FDF5E6
+}
+
+actor User
+
+box "Frontend" #D5E8D4
+participant "Prompt-Komponente\n(Frontend)" as Prompt
+participant "TextEditor-Komponente\n(Frontend)" as Editor
+end box
+
+box "Backend" #DAE8FC
+participant "LLM API\n(LocalAI/Ollama/OpenAI)" as LLM
+participant "PlantUML Server\n(Backend)" as PlantUML
+end box
+
+== Prompt senden ==
+User -> Prompt : schreibt Diagramm-Anfrage
+User -> Prompt : klickt "Send"
+Prompt -> LLM : sendet Prompt
+LLM -> Editor : streamt PlantUML-Syntax
+
+== Bearbeiten und UML erzeugen ==
+User -> Editor : optional: bearbeitet PlantUML
+User -> Editor : klickt "Generate UML"
+Editor -> PlantUML : sendet PlantUML-Code
+PlantUML -> Editor : sendet gerendertes Bild
+
+== Weitere Optionen ==
+User -> Editor : klickt "Download"
+User -> Editor : bearbeitet Text erneut
+User -> Prompt : sendet neuen Prompt
+
+@enduml
