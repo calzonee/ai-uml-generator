@@ -1,0 +1,8 @@
+name: llama3-8b
+backend: transformers
+parameters:
+  model: huggingface://meta-llama/Llama-3-8b
+  tokenizer: huggingface://meta-llama/Llama-3-8b
+context_size: 4096
+template:
+  chat: chatml

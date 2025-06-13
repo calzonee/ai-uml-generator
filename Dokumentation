@@ -1,0 +1,47 @@
+## 🔧 Komponentenübersicht
+
+### 1. `frontend` (Port **5173**)
+- React/Vite-Anwendung zur Nutzerinteraktion
+- Fragt über REST das Backend nach einem PlantUML-Diagramm (inkl. PNG)
+- Dev-Modus per Hot Reload (`CHOKIDAR_USEPOLLING=true`)
+
+### 2. `backend` (Port **3001**)
+- Express.js-Server (Node.js)
+- Endpunkt: `POST /api/generate`
+  - Sendet den Prompt an ein LLM (LocalAI)
+  - Rendert das Ergebnis per `plantuml.jar` in PNG
+  - Antwort: `plantuml`-Code + PNG als `base64`
+
+### 3. `localai` (Port **8080**)
+- Containerisierte LLM-Schnittstelle ([localai.io](https://localai.io/))
+- Lädt Modelle aus `./models`
+- OpenAI-kompatibles API: `/v1/chat/completions`
+
+---
+
+## 📦 Modellstruktur (`./models`)
+
+- `llama3-8b/llama3-8b.yml`: Modellkonfiguration für LocalAI  
+  → Quelle: Huggingface (LLaMA 3)  
+  → Konfiguriert Kontextgröße, Tokenizer etc.
+
+- Weitere Modelle wie `plant-uml-qwen-7b` möglich
+
+---
+
+## ▶️ Start per Docker Compose
+
+```bash
+docker-compose up --build
+
+
+Test Modells w/o UI
+
+curl -s http://localhost:8080/v1/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+        "model": "phi-2",
+        "prompt": "What is the capital of France?",
+        "max_tokens": 16,
+        "temperature": 0.7
+      }'

@@ -3,10 +3,11 @@
         import { defineProps, defineEmits } from 'vue'
 
         const llms = [
-          { id: 'openai', name: 'OpenAI' },
-          { id: 'llama', name: 'LLaMa' },
-          { id: 'mistral', name: 'Mistral' },
-          { id: 'deepseek', name: 'DeepSeek' },
+          { id: 'llama3-8b', name: 'LLama' },
+          { id: 'plant-uml-qwen-7b', name: 'PlantUmlQwen' },
+          { id: 'phi-2', name: 'Phi2' },
+          { id: 'gpt-2', name: 'Gpt2' },
+
         ]
 
         const props = defineProps({

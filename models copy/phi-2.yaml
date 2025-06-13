@@ -1,0 +1,7 @@
+name: phi-2
+backend: llama-cpp
+parameters:
+  model: huggingface://TheBloke/phi-2-GGUF/phi-2.Q8_0.gguf
+context_size: 2048
+template:
+  chat: chatml

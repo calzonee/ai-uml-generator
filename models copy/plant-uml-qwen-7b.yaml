@@ -1,0 +1,8 @@
+name: plant-uml-qwen-7b
+backend: transformers
+parameters:
+  model: huggingface://chamomaghre/plant-uml-qwen-7b
+  tokenizer: huggingface://chamomaghre/plant-uml-qwen-7b
+context_size: 4096
+template:
+  chat: chatml
