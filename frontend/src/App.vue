@@ -1,6 +1,6 @@
 <template>
   <main class="p-4 max-w-2xl mx-auto">
-    <h1 class="text-2xl font-bold mb-4"></h1>
+    <h1 class="text-2xl font-bold mb-4">PlantUML Generator</h1>
 
     <!-- Auswahl des LLM -->
     <LLMSelector v-model:selectedLLM="selectedLLM" class="mb-4" />
@@ -23,7 +23,7 @@
     <!-- Fehlermeldung -->
     <div v-if="error" class="error mt-4">{{ error }}</div>
 
-    <!-- PlantUML-Editor (immer anzeigen, wenn Code vorhanden) -->
+    <!-- PlantUML-Editor -->
     <PlantUmlEditor
       v-if="plantumlCode"
       v-model:plantumlCode="plantumlCode"
@@ -31,12 +31,23 @@
     />
 
     <!-- Diagramm-Anzeige -->
-    <DiagramDisplay
-      v-if="diagramUrl"
-      :diagramUrl="diagramUrl"
-      @download="downloadDiagram"
-      class="mt-6"
-    />
+    <div v-if="diagramUrl" class="mt-6">
+      <!-- SVG inline als Blob-URL -->
+      <img :src="diagramUrl" alt="UML Diagramm" />
+      <div class="mt-2">
+        <label for="download-format">Download-Format:</label>
+        <select id="download-format" v-model="downloadFormat" class="ml-2">
+          <option value="png">PNG</option>
+          <option value="svg">SVG</option>
+        </select>
+        <button
+          class="px-3 py-1 ml-2 rounded bg-blue-500 text-white hover:bg-blue-600"
+          @click="downloadDiagram"
+        >
+          Herunterladen
+        </button>
+      </div>
+    </div>
 
     <!-- Hinweis bei PlantUML-Fehler -->
     <div
@@ -54,15 +65,16 @@ import axios from 'axios'
 import PromptInput from './components/PromptInput.vue'
 import LLMSelector from './components/LLMSelector.vue'
 import PlantUmlEditor from './components/PlantUmlEditor.vue'
-import DiagramDisplay from './components/DiagramDisplay.vue'
 
 const prompt = ref('')
 const selectedLLM = ref('openai')
 const plantumlCode = ref('')
 const diagramUrl = ref(null)
+const downloadFormat = ref('png')
 const loading = ref(false)
 const error = ref(null)
 
+// Backend-Client
 const api = axios.create({ baseURL: import.meta.env.VITE_BACKEND_URL })
 
 async function generatePlantUML() {
@@ -76,18 +88,26 @@ async function generatePlantUML() {
   diagramUrl.value = null
 
   try {
-    const { data } = await api.post('/api/generate', {
+    // 1) Generiere PlantUML-Text
+    const resp1 = await api.post('/api/prompt', {
       prompt: prompt.value,
-      llm: selectedLLM.value
+      model: selectedLLM.value,
+      temperature: 0.7
     })
-
-    plantumlCode.value = data.plantuml
-
-    if (data.success) {
-      diagramUrl.value = `data:image/png;base64,${data.imageBase64}`
-    } else {
-      error.value = data.error
+    if (!resp1.data.success) {
+      throw new Error(resp1.data.error || 'Fehler bei der Generierung')
     }
+    plantumlCode.value = resp1.data.plantuml
+
+    // 2) Hole gerendertes Diagramm als SVG (Inline)
+    const resp2 = await api.post('/api/uml', {
+      plantuml: plantumlCode.value,
+      download: false
+    }, { responseType: 'text' })
+    // Erstelle Blob-URL aus SVG-Text
+    const svgText = resp2.data
+    const blob = new Blob([svgText], { type: 'image/svg+xml' })
+    diagramUrl.value = URL.createObjectURL(blob)
   } catch (err) {
     error.value = err.response?.data?.error || err.message
   } finally {
@@ -96,13 +116,25 @@ async function generatePlantUML() {
 }
 
 function downloadDiagram() {
-  if (!diagramUrl.value) return
-  const link = document.createElement('a')
-  link.href = diagramUrl.value
-  link.download = 'uml_diagram.png'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
+  if (!plantumlCode.value) return
+  // Für Download: neuen Request mit download=true
+  api.post('/api/uml', {
+    plantuml: plantumlCode.value,
+    download: true,
+    format: downloadFormat.value
+  }, { responseType: 'blob' }).then(res => {
+    const blob = new Blob([res.data], { type: res.headers['content-type'] })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `diagram.${downloadFormat.value}`
+    document.body.appendChild(a)
+    a.click()
+    URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+  }).catch(err => {
+    error.value = err.response?.data?.error || err.message
+  })
 }
 </script>
 

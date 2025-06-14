@@ -28,6 +28,7 @@ services:
     environment:
       - OLLAMA_API_URL=http://ollama:11434/v1/chat/completions
       - LLAMA_MODEL=llama3:8b
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
       - ollama
     restart: unless-stopped
