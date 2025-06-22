@@ -1,0 +1,50 @@
+@startuml
+skinparam backgroundColor #ffffff
+left to right direction
+
+' Farben für Frontend und Backend
+skinparam rectangle {
+  BackgroundColor<<backend>> #e1f5fe
+  BorderColor<<backend>> #0288d1
+  BackgroundColor<<frontend>> #c8e6c9
+  BorderColor<<frontend>> #2e7d32
+}
+
+skinparam component {
+  BackgroundColor #fff9c4
+  BorderColor #fbc02d
+}
+skinparam arrowColor #424242
+skinparam ArrowFontColor #424242
+skinparam ArrowFontSize 12
+
+title ChatUML Systemübersicht
+
+' Frontend-Komponenten
+rectangle "Prompt Input" <<frontend>> as PI
+rectangle "Text Editor" <<frontend>> as TE
+rectangle "Diagram Preview" <<frontend>> as DP
+
+' Backend-Komponenten
+rectangle "LLM Service" <<backend>> as LLM {
+  component "Ollama\nllama3b"
+  component "ChatGPT"
+}
+rectangle "PlantUML API" <<backend>> as PU
+
+PI --> LLM : api/prompt
+PI -[hidden]-> LLM : api/prompt
+PI -[hidden]-> LLM : api/prompt
+LLM --> TE : stream
+TE --> PU : api/uml
+PU --> DP : Bild (SVG/PNG)
+
+
+' Legende als Tabelle mit Farben
+legend center
+|= Farbe |= Bedeutung |
+|<#c8e6c9> | Frontend-Komponente |
+|<#e1f5fe> | Backend-Komponente |
+|<#fff9c4> | Komponenten innerhalb Backend (Component) |
+end legend
+@enduml

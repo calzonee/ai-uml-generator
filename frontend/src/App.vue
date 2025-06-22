@@ -5,7 +5,7 @@ import TextEditor from "./components/TextEditor.vue";
 </script>
 
 <template>
-  <h1 class="title">ChatUML</h1>
+  <h1 class="title text-green-500">ChatUML</h1>
   <div class="app">
     <div class="edit">
       <TextEditor />
