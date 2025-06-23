@@ -15,86 +15,228 @@ const LLAMA_MODEL = process.env.LLAMA_MODEL || 'llama3';
 // OpenAI configuration
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-3.5-turbo';
+const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-nano';
 
 app.use(bodyParser.json());
 app.use(cors());
 
+// 1) Minimaler System-Prompt: Rolle & Zweck
 const SYSTEM_PROMPT = `
 You are **ChatUML**, a teaching assistant that converts plain-language
-requirements into clear, self-explanatory *PlantUML* diagrams.
+requirements into clear, self-explanatory PlantUML diagrams (including UML, mindmaps, and more).
+Always follow the user’s instructions exactly.
+`.trim();
 
-───────────────────────────────  GENERAL RULES  ───────────────────────────────
-1. **Output exactly one PlantUML block** – start with \`@startuml\`, end with
-   \`@enduml\`.  No Markdown, no prose outside this block.
-2. **Pick the most suitable diagram type automatically**  
-   • Structural → class, component, deployment, object, ER  
-   • Behavioural → sequence, activity, state, use-case, timing  
-3. **Focus on teaching value**  
-   • Use meaningful names, stereotypes « », labels, and notes.  
-   • Show relationships (multiplicity, direction, messages, transitions).  
-   • Insert a concise legend or title when helpful.
-4. **Syntax hints** (quick cheatsheet)
-   ─ Class  : \`class Order { +id : UUID \\n +submit() }\`
-              Associations → \`Customer "1" -- "many" Order : places >\`
-   ─ Sequence: \`actor User\\nUser -> Auth : login()\\nAuth --> User : JWT\`
-   ─ State   : \`[*] --> Idle\\nIdle --> Busy : start / init()\`
-   ─ Use-case: \`(Checkout) as UC1\\nCustomer -- UC1\`
-   ─ Notes   : \`note right of Order : persisted in table orders\`
-5. **Avoid** skinparams, headers, or themes unless explicitly requested.
+// 2) Prompt-Template mit Platzhaltern für Regeln, Beispiele und Anwender-Anfrage
+const PROMPT_TEMPLATE = `
+=== Conversion Task ===
+Convert the following requirement into a PlantUML diagram or mindmap:
 
-──────────────────────────────  EXAMPLES  ───────────────────────────────
-### 1  Class Diagram – Library
+{user_input}
+
+=== Rules ===
+1. **Single block**: Output exactly one PlantUML block.  
+   • Begin with \`@startuml\`/\`@startmindmap\`, end with \`@enduml\`/\`@endmindmap\`.  
+   • No additional text or Markdown outside this block.  
+2. **Diagram type**: Choose the most suitable type automatically:  
+   – Structural: class, component, deployment, object, ER  
+   – Behavioural: sequence, activity, state, use-case, timing  
+   – Other: mindmap  
+3. **Clarity & Teaching**:  
+   – Use meaningful names, stereotypes « », labels, notes.  
+   – Show relationships (multiplicity, directions, messages, transitions) or hierarchy for mindmaps.  
+   – Add a concise title or legend if helpful.  
+4. **Syntax cheatsheet** (for reference only):  
+   – Class: \`class Order { +id : UUID \\\\n +submit() }\`  
+   – Sequence:  
+   \`\`\`  
+   actor User  
+   User -> Auth : login()  
+   Auth --> User : JWT  
+   \`\`\`  
+   – Mindmap:  
+   \`\`\`  
+   @startmindmap  
+   * RootTopic  
+   ** SubTopic1  
+   ** SubTopic2  
+   @endmindmap  
+   \`\`\`  
+5. **No styling**: Avoid skinparams, themes or headers unless explicitly requested.
+
+=== Examples ===
+{examples}
+
+=== Your Diagram ===
+`.trim();
+
+// 3) Beispiel-Platzhalter (fülle „{examples}“ später mit konkreten Beispielen)
+const EXAMPLES = `
+// 1) Class Diagram – Library System
 @startuml
-class Book {
-  +id : UUID
-  +title : String
-  +borrow() : Loan
+class Student {
+  +Name: String
 }
-class Member {
-  +memberId : UUID
-  +name : String
-  +borrow(b: Book) : Loan
+class Course {
+  +Title: String
 }
-class Loan {
-  +dueDate : Date
-  +return()
+Student "0..*" - "1..*" Course
+class Enrollment {
 }
-Member "1" -- "many" Loan : borrows >
-Book  "1" -- "many" Loan : < loaned
+(Student, Course) .. Enrollment
 @enduml
 
-### 2  Sequence Diagram – Login Flow
+// 2) Sequence Diagram – Login Flow
 @startuml
 actor User
-participant "Auth Service" as Auth
-database "User DB" as DB
-
-User -> Auth : submitCredentials(email,pwd)
-Auth -> DB   : SELECT user
-DB   --> Auth: userRecord
-Auth -> User : issueJWT(token)
+participant Auth
+database DB
+User -> Auth : submitCredentials(email, pwd)
+Auth -> DB : SELECT * FROM users
+DB --> Auth : userRecord
+Auth -> User : JWT
 @enduml
 
-### 3  State Diagram – Traffic Light
+// 3) Activity Diagram – Order Process
 @startuml
-state TrafficLight {
-  [*] --> Red
-  Red   --> Green  : timer / next()
-  Green --> Yellow : timer / next()
-  Yellow --> Red   : timer / next()
-}
+start
+:Place Order;
+if (In Stock?) then (yes)
+  :Ship Item;
+else (no)
+  :Notify Customer;
+endif
+stop
 @enduml
+
+// 4) Use-Case Diagram – Library System
+@startuml
+actor "Member" as Member
+(usecase "Borrow Book") as UC1
+(usecase "Return Book") as UC2
+Member -- UC1
+Member -- UC2
+@enduml
+
+// 5) State Diagram – Traffic Light
+@startuml
+[*] --> Red
+Red --> Green : timer / switch
+Green --> Yellow : timer / switch
+Yellow --> Red : timer / switch
+@enduml
+
+// 6) Component Diagram – E-Commerce
+@startuml
+component "Web Frontend" as Web
+component "API Service" as API
+component "Database" as DB
+Web --> API : REST
+API --> DB : SQL
+@enduml
+
+// 7) Deployment Diagram – Cloud Architecture
+@startuml
+node "Load Balancer" as LB {
+}
+node "Web Server" as WS {
+  component Web
+}
+node "Database Server" as DS {
+  database DB
+}
+LB --> WS
+WS --> DS
+@enduml
+
+// 8) ER Diagram – Information Model
+@startuml
+entity Customer {
+  *customer_id : int
+  --
+  name : string
+}
+entity Order {
+  *order_id : int
+  --
+  date : date
+}
+Customer ||--o{ Order : places
+@enduml
+
+// 9) Object Diagram – Instance Snapshot
+@startuml
+object person1 {
+  name = "Alice"
+  age = 30
+}
+object person2 {
+  name = "Bob"
+  age = 25
+}
+person1 -- person2 : knows
+@enduml
+
+// 10) Timing Diagram – Signal States
+@startuml
+robust "WebBrowser" as WB
+concise "WebUser" as WU
+@0
+WU is Idle
+WB is Idle
+@+100
+WU -> WB : request()
+WB is Processing
+@+200
+WB is Idle
+@enduml
+
+// 11) Mindmap – Künstliche Intelligenz
+@startmindmap
+title Künstliche Intelligenz – Komponenten und Bereiche
+* Künstliche Intelligenz
+** Grundlagen
+*** Definition
+*** Geschichte
+*** Zielsetzung
+** Teilgebiete
+*** Maschinelles Lernen
+*** Deep Learning
+*** Natürliche Sprachverarbeitung
+*** Computer Vision
+*** Robotik
+*** Expertensysteme
+** Anwendungen
+*** Sprachassistenten
+*** Bild- und Spracherkennung
+*** Autonomes Fahren
+*** Medizinische Diagnostik
+*** Empfehlungssysteme
+** Technologien
+*** Neuronale Netze
+*** Entscheidungsbäume
+*** Support Vector Machines
+*** Reinforcement Learning
+*** Big Data
+*** Cloud Computing
+@endmindmap
 `.trim();
+
+// 4) Helper zum Befüllen des Templates
+function buildPrompt(userInput) {
+  return PROMPT_TEMPLATE
+    .replace('{user_input}', userInput)
+    .replace('{examples}', EXAMPLES);
+}
 // Helper: call local Ollama (LLaMA)
 async function callLlama(prompt, temperature = 0.7) {
-
+  const fullPrompt = buildPrompt(prompt);
   const resp = await fetch(OLLAMA_API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ model: LLAMA_MODEL, messages: [
         { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: prompt }
+        { role: 'user', content: fullPrompt }
       ], temperature
     })
   });
@@ -106,6 +248,7 @@ async function callLlama(prompt, temperature = 0.7) {
 // Helper: call OpenAI Chat
 async function callOpenAI(prompt, temperature = 0.7) {
   if (!OPENAI_API_KEY) throw new Error('Missing OPENAI_API_KEY');
+  const fullPrompt = buildPrompt(prompt);
   const resp = await fetch(OPENAI_API_URL, {
     method: 'POST',
     headers: {
@@ -114,7 +257,7 @@ async function callOpenAI(prompt, temperature = 0.7) {
     },
     body: JSON.stringify({ model: OPENAI_MODEL, messages: [
         { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: prompt }
+        { role: 'user', content: fullPrompt }
       ], temperature
     })
   });
