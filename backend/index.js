@@ -298,39 +298,38 @@ async function renderPlantUML(umlText, format = 'svg') {
  */
 
 app.post('/api/prompt', async (req, res) => {
-  console.log('Received prompt:', req.body)
-  const { prompt, model = 'llama', temperature = 0.7 } = req.body
-
+  console.log('Received prompt:', req.body);
+  const { prompt, model = 'llama', temperature = 0.7 } = req.body;
   if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
-    return res.status(400).json({ error: 'Prompt must be a non-empty string.' })
+    return res.status(400).json({ error: 'Prompt must be a non-empty string.' });
   }
 
   try {
-    // 1) LLM aufrufen – liefert einen vollständigen String, kein Stream
+    // 1) kompletten PlantUML-String holen
     const plantuml = model === 'gpt4o'
       ? await callOpenAI(prompt, temperature)
-      : await callLlama(prompt, temperature)
+      : await callLlama(prompt, temperature);
 
-    // 2) Antwort-Header setzen und direkt senden (Streaming-Modus)
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8')
-    res.flushHeaders()
 
-    // 3) PlantUML-String in kleine Chunks aufteilen
-    const CHUNK_SIZE = 8 // oder jede andere sinnvolle Größe
-    const chunks = []
-    for (let i = 0; i < plantuml.length; i += CHUNK_SIZE) {
-      chunks.push(plantuml.slice(i, i + CHUNK_SIZE))
-    }
 
-    // 4) Array-of-Strings als Readable-Stream erzeugen und in die Response pipen
-    Readable.from(chunks).pipe(res)
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.setHeader('Transfer-Encoding', 'chunked');
+  res.flushHeaders();
 
-  } catch (err) {
-    console.error('LLM error', err)
-    // im Fehlerfall JSON, damit der Client das erkennen kann
-    res.status(500).json({ error: err.message })
+  const CHUNK_SIZE = 32;  // größer, damit nicht zu viele Chunks
+  for (let i = 0; i < plantuml.length; i += CHUNK_SIZE) {
+    const chunk = plantuml.slice(i, i + CHUNK_SIZE);
+    res.write(chunk);
+    // kurze Pause, damit auch Proxy/Browser nicht alles puffert:
+    await new Promise(r => setTimeout(r, 50));
   }
-})
+  res.end();
+  } catch (err) {
+    console.error('LLM error', err);
+    // auf Error-Fall als JSON antworten
+    res.status(500).json({ error: err.message });
+  }
+});
 
 /**
  * POST /api/uml
