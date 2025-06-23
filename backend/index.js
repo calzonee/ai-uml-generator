@@ -4,12 +4,13 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import { spawn } from 'child_process';
 import fetch from 'node-fetch';
+import { Readable } from 'stream'
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 // Ollama (local LLaMA via Ollama API)
-const OLLAMA_API_URL = process.env.OLLAMA_API_URL || 'http://localhost:11434/v1/chat/completions';
+const OLLAMA_API_URL = process.env.OLLAMA_API_URL || 'http://ollama:11434/v1/chat/completions';
 const LLAMA_MODEL = process.env.LLAMA_MODEL || 'llama3';
 
 // OpenAI configuration
@@ -230,6 +231,7 @@ function buildPrompt(userInput) {
 }
 // Helper: call local Ollama (LLaMA)
 async function callLlama(prompt, temperature = 0.7) {
+  console.log('Calling LLaMA with prompt:', prompt);
   const fullPrompt = buildPrompt(prompt);
   const resp = await fetch(OLLAMA_API_URL, {
     method: 'POST',
@@ -237,7 +239,7 @@ async function callLlama(prompt, temperature = 0.7) {
     body: JSON.stringify({ model: LLAMA_MODEL, messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: fullPrompt }
-      ], temperature
+      ]
     })
   });
   if (!resp.ok) throw new Error(`Ollama API error ${resp.status}`);
@@ -248,6 +250,7 @@ async function callLlama(prompt, temperature = 0.7) {
 // Helper: call OpenAI Chat
 async function callOpenAI(prompt, temperature = 0.7) {
   if (!OPENAI_API_KEY) throw new Error('Missing OPENAI_API_KEY');
+  console.log('Calling OpenAI with prompt:', prompt);
   const fullPrompt = buildPrompt(prompt);
   const resp = await fetch(OPENAI_API_URL, {
     method: 'POST',
@@ -293,21 +296,41 @@ async function renderPlantUML(umlText, format = 'svg') {
  *   { success: true, plantuml: string }
  *   or on error { success: false, error: string }
  */
+
 app.post('/api/prompt', async (req, res) => {
-  const { prompt, model = 'llama', temperature = 0.7 } = req.body;
+  console.log('Received prompt:', req.body)
+  const { prompt, model = 'llama', temperature = 0.7 } = req.body
+
   if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
-    return res.status(400).json({ error: 'Prompt must be a non-empty string.' });
+    return res.status(400).json({ error: 'Prompt must be a non-empty string.' })
   }
+
   try {
-    const plantuml = model === 'openai'
+    // 1) LLM aufrufen – liefert einen vollständigen String, kein Stream
+    const plantuml = model === 'gpt4o'
       ? await callOpenAI(prompt, temperature)
-      : await callLlama(prompt, temperature);
-    res.json({ success: true, plantuml });
+      : await callLlama(prompt, temperature)
+
+    // 2) Antwort-Header setzen und direkt senden (Streaming-Modus)
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+    res.flushHeaders()
+
+    // 3) PlantUML-String in kleine Chunks aufteilen
+    const CHUNK_SIZE = 8 // oder jede andere sinnvolle Größe
+    const chunks = []
+    for (let i = 0; i < plantuml.length; i += CHUNK_SIZE) {
+      chunks.push(plantuml.slice(i, i + CHUNK_SIZE))
+    }
+
+    // 4) Array-of-Strings als Readable-Stream erzeugen und in die Response pipen
+    Readable.from(chunks).pipe(res)
+
   } catch (err) {
-    console.error('LLM error', err);
-    res.status(500).json({ success: false, error: err.message });
+    console.error('LLM error', err)
+    // im Fehlerfall JSON, damit der Client das erkennen kann
+    res.status(500).json({ error: err.message })
   }
-});
+})
 
 /**
  * POST /api/uml
