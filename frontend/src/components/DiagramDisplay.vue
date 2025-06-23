@@ -4,7 +4,7 @@
         const props = defineProps({
           diagramUrl: String,
         })
-        const emit = defineEmits(['download'])
+        const emit = defidneEmits(['download'])
         </script>
 
         <template>

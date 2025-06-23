@@ -1,0 +1,17 @@
+## 🔧 Komponentenübersicht
+
+### 1. `frontend` (Port **5173**)
+- React/Vite-Anwendung zur Nutzerinteraktion
+- Fragt über REST das Backend nach einem PlantUML-Diagramm (inkl. PNG)
+- Dev-Modus per Hot Reload (`CHOKIDAR_USEPOLLING=true`)
+
+### 2. `backend` (Port **3001**)
+- Express.js-Server (Node.js)
+- Endpunkt: `POST /api/generate`
+  - Sendet den Prompt an ein LLM (LocalAI)
+  - Rendert das Ergebnis per `plantuml.jar` in PNG
+  - Antwort: `plantuml`-Code + PNG als `base64`
+
+## Modellstruktur
+
+
