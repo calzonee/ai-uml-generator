@@ -26,7 +26,7 @@ services:
     ports:
       - "3001:3000"
     environment:
-      - LLAMA_MODEL=llama3:8b
+      - LLAMA_MODEL=llama3:3b
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
       - ollama

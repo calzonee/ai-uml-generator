@@ -4,6 +4,7 @@ import { inject } from 'vue'
 const selectedModel = inject('selectedModel')
 const selectedDiagram = inject('selectedDiagram')
 const darkMode = inject('darkMode')
+const selectedFormat = inject('png')
 </script>
 
 <template>
@@ -40,6 +41,14 @@ const darkMode = inject('darkMode')
       <input type="checkbox" v-model="darkMode" />
       <label>Dunkel</label>
     </div>
+
+    <select
+      class="rounded bg-zinc-700 px-2 py-1 text-sm text-white focus:ring-2 focus:ring-zinc-400 focus:outline-none"
+      v-model="selectedFormat"
+    >
+      <option value="png" selected>PNG</option>
+      <option value="svg">SVG</option>
+    </select>
   </div>
 </template>
 

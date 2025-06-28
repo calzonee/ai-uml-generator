@@ -7,8 +7,12 @@
 //   -PreviewPane.vue
 //     -PreviewToolbar.vue
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+
 import EditorPane from './../components/EditorPane.vue'
 import PreviewPane from './../components/PreviewPane.vue'
+
+//
+const renderedDiagramUrl = ref('')
 
 const TOOLBAR_HEIGHT = 48
 
@@ -101,7 +105,7 @@ onBeforeUnmount(() => {
       :style="isMobile ? `height: ${splitSize}px` : `width: ${splitSize}px`"
       class="overflow-auto"
     >
-      <EditorPane />
+      <EditorPane @diagramRendered="renderedDiagramUrl = $event" />
     </div>
 
     <div
@@ -124,7 +128,7 @@ onBeforeUnmount(() => {
     </div>
 
     <div class="flex-1 overflow-auto">
-      <PreviewPane />
+      <PreviewPane :imageSrc="renderedDiagramUrl" />
     </div>
   </div>
 </template>

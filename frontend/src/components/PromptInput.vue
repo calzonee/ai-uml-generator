@@ -1,6 +1,5 @@
 <script setup>
 import { ref, watch, nextTick, inject } from 'vue'
-import axios from 'axios'
 
 const prompt = ref('')
 const textareaRef = ref(null)
@@ -30,8 +29,8 @@ async function sendPrompt() {
   isStreaming.value = true
 
   try {
-    console.log("model", selectedModel.value);
-    console.log("prompt", prompt.value);
+    console.log('model', selectedModel.value)
+    console.log('prompt', prompt.value)
     const response = await fetch('/api/prompt', {
       method: 'POST',
       headers: {

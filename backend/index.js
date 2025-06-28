@@ -1,22 +1,23 @@
 // index.js
-import express from 'express';
-import cors from 'cors';
-import bodyParser from 'body-parser';
-import { spawn } from 'child_process';
-import fetch from 'node-fetch';
-import { Readable } from 'stream'
+import express from "express";
+import cors from "cors";
+import bodyParser from "body-parser";
+import { spawn } from "child_process";
+import fetch from "node-fetch";
+import { Readable } from "stream";
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 // Ollama (local LLaMA via Ollama API)
-const OLLAMA_API_URL = process.env.OLLAMA_API_URL || 'http://ollama:11434/v1/chat/completions';
-const LLAMA_MODEL = process.env.LLAMA_MODEL || 'llama3';
+const OLLAMA_API_URL =
+  process.env.OLLAMA_API_URL || "http://ollama:11434/v1/chat/completions";
+const LLAMA_MODEL = process.env.LLAMA_MODEL || "llama3";
 
 // OpenAI configuration
-const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
+const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-nano';
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4.1-nano";
 
 app.use(bodyParser.json());
 app.use(cors());
@@ -225,22 +226,25 @@ title Künstliche Intelligenz – Komponenten und Bereiche
 
 // 4) Helper zum Befüllen des Templates
 function buildPrompt(userInput) {
-  return PROMPT_TEMPLATE
-    .replace('{user_input}', userInput)
-    .replace('{examples}', EXAMPLES);
+  return PROMPT_TEMPLATE.replace("{user_input}", userInput).replace(
+    "{examples}",
+    EXAMPLES
+  );
 }
 // Helper: call local Ollama (LLaMA)
 async function callLlama(prompt, temperature = 0.7) {
-  console.log('Calling LLaMA with prompt:', prompt);
+  console.log("Calling LLaMA with prompt:", prompt);
   const fullPrompt = buildPrompt(prompt);
   const resp = await fetch(OLLAMA_API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: LLAMA_MODEL, messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: fullPrompt }
-      ]
-    })
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: LLAMA_MODEL,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: fullPrompt },
+      ],
+    }),
   });
   if (!resp.ok) throw new Error(`Ollama API error ${resp.status}`);
   const { choices } = await resp.json();
@@ -249,20 +253,23 @@ async function callLlama(prompt, temperature = 0.7) {
 
 // Helper: call OpenAI Chat
 async function callOpenAI(prompt, temperature = 0.7) {
-  if (!OPENAI_API_KEY) throw new Error('Missing OPENAI_API_KEY');
-  console.log('Calling OpenAI with prompt:', prompt);
+  if (!OPENAI_API_KEY) throw new Error("Missing OPENAI_API_KEY");
+  console.log("Calling OpenAI with prompt:", prompt);
   const fullPrompt = buildPrompt(prompt);
   const resp = await fetch(OPENAI_API_URL, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${OPENAI_API_KEY}`
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
     },
-    body: JSON.stringify({ model: OPENAI_MODEL, messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: fullPrompt }
-      ], temperature
-    })
+    body: JSON.stringify({
+      model: OPENAI_MODEL,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: fullPrompt },
+      ],
+      temperature,
+    }),
   });
   if (!resp.ok) throw new Error(`OpenAI API error ${resp.status}`);
   const { choices } = await resp.json();
@@ -270,13 +277,18 @@ async function callOpenAI(prompt, temperature = 0.7) {
 }
 
 // PlantUML rendering: via Java JAR
-async function renderPlantUML(umlText, format = 'svg') {
+async function renderPlantUML(umlText, format = "svg") {
   return new Promise((resolve, reject) => {
-    const args = ['-jar', '/usr/local/bin/plantuml.jar', '-pipe', format === 'svg' ? '-tsvg' : '-tpng'];
-    const proc = spawn('java', args, { stdio: ['pipe', 'pipe', 'inherit'] });
+    const args = [
+      "-jar",
+      "/usr/local/bin/plantuml.jar",
+      "-pipe",
+      format === "svg" ? "-tsvg" : "-tpng",
+    ];
+    const proc = spawn("java", args, { stdio: ["pipe", "pipe", "inherit"] });
     const chunks = [];
-    proc.stdout.on('data', b => chunks.push(b));
-    proc.on('close', code => {
+    proc.stdout.on("data", (b) => chunks.push(b));
+    proc.on("close", (code) => {
       if (code === 0) resolve(Buffer.concat(chunks));
       else reject(new Error(`PlantUML exited with code ${code}`));
     });
@@ -297,35 +309,36 @@ async function renderPlantUML(umlText, format = 'svg') {
  *   or on error { success: false, error: string }
  */
 
-app.post('/api/prompt', async (req, res) => {
-  console.log('Received prompt:', req.body);
-  const { prompt, model = 'llama', temperature = 0.7 } = req.body;
-  if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
-    return res.status(400).json({ error: 'Prompt must be a non-empty string.' });
+app.post("/api/prompt", async (req, res) => {
+  console.log("Received prompt:", req.body);
+  const { prompt, model = "llama", temperature = 0.7 } = req.body;
+  if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
+    return res
+      .status(400)
+      .json({ error: "Prompt must be a non-empty string." });
   }
 
   try {
     // 1) kompletten PlantUML-String holen
-    const plantuml = model === 'gpt4o'
-      ? await callOpenAI(prompt, temperature)
-      : await callLlama(prompt, temperature);
+    const plantuml =
+      model === "gpt4o"
+        ? await callOpenAI(prompt, temperature)
+        : await callLlama(prompt, temperature);
 
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.setHeader("Transfer-Encoding", "chunked");
+    res.flushHeaders();
 
-
-  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-  res.setHeader('Transfer-Encoding', 'chunked');
-  res.flushHeaders();
-
-  const CHUNK_SIZE = 32;  // größer, damit nicht zu viele Chunks
-  for (let i = 0; i < plantuml.length; i += CHUNK_SIZE) {
-    const chunk = plantuml.slice(i, i + CHUNK_SIZE);
-    res.write(chunk);
-    // kurze Pause, damit auch Proxy/Browser nicht alles puffert:
-    await new Promise(r => setTimeout(r, 50));
-  }
-  res.end();
+    const CHUNK_SIZE = 32; // größer, damit nicht zu viele Chunks
+    for (let i = 0; i < plantuml.length; i += CHUNK_SIZE) {
+      const chunk = plantuml.slice(i, i + CHUNK_SIZE);
+      res.write(chunk);
+      // kurze Pause, damit auch Proxy/Browser nicht alles puffert:
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    res.end();
   } catch (err) {
-    console.error('LLM error', err);
+    console.error("LLM error", err);
     // auf Error-Fall als JSON antworten
     res.status(500).json({ error: err.message });
   }
@@ -348,31 +361,45 @@ app.post('/api/prompt', async (req, res) => {
  *       Binary PNG or SVG text
  *   - On error: JSON { success: false, error: string, plantuml?: string }
  */
-app.post('/api/uml', async (req, res) => {
-  const { plantuml, download = false, format = 'png' } = req.body;
-  if (!plantuml || typeof plantuml !== 'string') {
-    return res.status(400).json({ error: 'plantuml must be a string.' });
+app.post("/api/uml", async (req, res) => {
+  const { plantuml, download = false, format = "png" } = req.body;
+
+  console.log("📥 Neue /api/uml Anfrage erhalten");
+  console.log("🔎 Anfrage-Parameter:", { download, format });
+
+  if (!plantuml || typeof plantuml !== "string") {
+    console.warn("⚠️ Ungültiger oder fehlender plantuml-String");
+    return res.status(400).json({ error: "plantuml must be a string." });
   }
-  if (download && !['png', 'svg'].includes(format)) {
-    return res.status(400).json({ error: 'format must be png or svg.' });
+  if (download && !["png", "svg"].includes(format)) {
+    console.warn("⚠️ Ungültiges Format im Download-Modus:", format);
+    return res.status(400).json({ error: "format must be png or svg." });
   }
   try {
     if (!download) {
       // Inline embed always SVG
-      const buf = await renderPlantUML(plantuml, 'svg');
-      res.setHeader('Content-Type', 'image/svg+xml');
-      return res.send(buf.toString('utf8'));
+      console.log("📄 Inline-Modus aktiv – rendere SVG");
+      const buf = await renderPlantUML(plantuml, "svg");
+      res.setHeader("Content-Type", "image/svg+xml");
+      console.log("✅ SVG gerendert, sende Antwort");
+      return res.send(buf.toString("utf8"));
     }
     // Download mode
+    console.log(`💾 Download-Modus aktiv – rendere ${format.toUpperCase()}`);
     const buf = await renderPlantUML(plantuml, format);
-    const mime = format === 'svg' ? 'image/svg+xml' : 'image/png';
+    const mime = format === "svg" ? "image/svg+xml" : "image/png";
     const ext = format;
-    res.setHeader('Content-Type', mime);
-    res.setHeader('Content-Disposition', `attachment; filename="diagram.${ext}"`);
-    if (format === 'svg') res.send(buf.toString('utf8'));
+    res.setHeader("Content-Type", mime);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="diagram.${ext}"`
+    );
+
+    console.log(`💾 Download-Modus aktiv – rendere ${format.toUpperCase()}`);
+    if (format === "svg") res.send(buf.toString("utf8"));
     else res.send(buf);
   } catch (err) {
-    console.error('Render error', err);
+    console.error("Render error", err);
     res.status(500).json({ success: false, error: err.message, plantuml });
   }
 });

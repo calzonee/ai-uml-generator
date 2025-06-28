@@ -1,12 +1,20 @@
 <script setup>
+import { defineProps } from 'vue'
+
 import PreviewToolbar from './PreviewToolbar.vue'
+
+const props = defineProps({
+  imageSrc: String,
+})
+// const renderedDiagramUrl = inject('renderedDiagramUrl')
 </script>
 
 <template>
   <div class="block">
-    <PreviewToolbar />
+    <PreviewToolbar @downloadClicked="handleDownload" />
     <div class="preview">
-      <img src="../assets/usecase-ai-uml-generator.png" alt="" class="diagram" />
+      <img :src="imageSrc" alt="Diagram Vorschau" class="diagram" v-if="imageSrc" />
+      <!-- <img src="../assets/usecase-ai-uml-generator.png" alt="" class="diagram" /> -->
       <!-- <img src="../assets/sequenz-ai-uml-generator.png" alt="" class="diagram"> -->
     </div>
   </div>
