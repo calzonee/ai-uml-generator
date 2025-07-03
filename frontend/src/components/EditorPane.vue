@@ -50,48 +50,46 @@ function encodeSvgToBase64(svgString) {
 // Diagramm rendern
 async function renderDiagram(umlText) {
   if (!umlText.trim()) {
-    console.log('Texteditor leer')
-    return
+    console.log('Texteditor leer');
+    return;
   }
 
-  console.log('🛠️ Starte Diagramm-Rendering für Format:', selectedFormat.value) // Rendering startet
+  console.log('🛠️ Starte Diagramm-Rendering für Format:', selectedFormat.value);
 
   try {
-    const format = selectedFormat.value
+    let imageSrc = '';
 
-    const res = await axios.post(
-      '/api/uml',
-      {
-        plantuml: umlText,
-        format,
-        download: false,
-      },
-      {
-        responseType: format === 'svg' ? 'text' : 'blob',
-      },
-    )
+    if (selectedFormat.value === 'svg') {
+      // Inline-SVG: immer download=false, responseType text
+      const res = await axios.post(
+        '/api/uml',
+        { plantuml: umlText, download: false },
+        { responseType: 'text' }
+      );
+      console.log('✅ SVG erhalten, kodiere...');
+      imageSrc = encodeSvgToBase64(res.data);
 
-    console.log('✅ Serverantwort erhalten') // Axios erfolgreich
-
-    let imageSrc = ''
-
-    if (format === 'svg') {
-      imageSrc = encodeSvgToBase64(res.data)
-      console.log('🎨 SVG erfolgreich kodiert') // SVG erfolgreich
-    } else if (format === 'png') {
-      const blob = new Blob([res.data], { type: 'image/png' })
-      imageSrc = URL.createObjectURL(blob)
-      console.log('🖼️ PNG-Blob-URL erstellt') // PNG erfolgreich
+    } else {
+      // Echtes PNG per Download-Mode
+      const res = await axios.post(
+        '/api/uml',
+        { plantuml: umlText, download: true, format: 'png' },
+        { responseType: 'blob' }
+      );
+      console.log('✅ PNG-Blob erhalten, erstelle URL...');
+      const blob = new Blob([res.data], { type: 'image/png' });
+      imageSrc = URL.createObjectURL(blob);
     }
 
-    renderedDiagramUrl.value = imageSrc
-    console.log('📡 Diagramm-URL gesetzt:', imageSrc) // URL gespeichert
-    emit('diagramRendered', imageSrc) // an ChatUmlView weitergeben
+    // Diagramm-URL setzen und Event feuern
+    renderedDiagramUrl.value = imageSrc;
+    console.log('📡 Diagramm-URL gesetzt:', imageSrc);
+    emit('diagramRendered', imageSrc);
+
   } catch (err) {
-    console.error('Fehler beim UML Rendern:', err)
+    console.error('Fehler beim UML Rendern:', err);
   }
 }
-
 // Nach Stream-Ende rendern
 watch(responseText, (newText) => {
   if (!isStreaming.value) {
@@ -99,7 +97,12 @@ watch(responseText, (newText) => {
     renderDiagram(newText)
   }
 })
-
+watch(isStreaming, (streaming, old) => {
+  if (old === true && streaming === false) {
+    console.log('✅ Stream beendet – starte automatisches Rendering')
+    renderDiagram(responseText.value)
+  }
+})
 // Wenn Text im Editor geändert wird
 let debounceTimeout = null
 

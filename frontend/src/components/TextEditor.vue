@@ -8,12 +8,19 @@ const view = ref(null)
 const responseText = inject('responseText')
 
 onMounted(async () => {
-  // Initialisiere EditorView
-  view.value = new EditorView({
-    parent: editorRef.value,
-    doc: '',
-    extensions: [basicSetup, oneDark],
-  })
+view.value = new EditorView({
+  parent: editorRef.value,
+  doc: '',
+  extensions: [
+    basicSetup,
+    oneDark,
+    EditorView.updateListener.of((update) => {
+      if (update.docChanged) {
+        responseText.value = update.state.doc.toString()
+      }
+    }),
+  ],
+})
 
   // Fake-Streaming-Daten simulieren
   const fakeData = [
@@ -29,7 +36,6 @@ onMounted(async () => {
   }
 })
 
-// Dynamisch Inhalt setzen, wenn sich der Stream aktualisiert
 watch(responseText, (newText) => {
   if (view.value) {
     view.value.dispatch({

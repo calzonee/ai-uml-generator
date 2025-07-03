@@ -61,43 +61,21 @@ async function sendPrompt() {
     prompt.value = ''
   }
 }
-
-// async function sendPrompt() {
-//   if (prompt.value.trim() === '' || isStreaming.value) return
-
-//   responseText.value = ''
-//   isStreaming.value = true
-
-//   try {
-//     // Fake-Streaming-Daten
-//     const fakeData = [
-//       '@startuml\n',
-//       'Alice -> Bob: Hello\n',
-//       'Bob --> Alice: Hi!\n',
-//       '@enduml\n',
-//     ]
-
-//     for (let part of fakeData) {
-//       await new Promise((resolve) => setTimeout(resolve, 500)) // Delay simulieren
-//       responseText.value += part
-//     }
-//   } catch (err) {
-//     console.error('Fehler beim Fake-Stream:', err)
-//   } finally {
-//     isStreaming.value = false
-//     prompt.value = ''
-//   }
-// }
 </script>
 
 <template>
-  <div
-    class="m-4 flex items-center gap-2 rounded bg-gray-700 p-2 shadow-md shadow-gray-950/50"
-  >
+  <div class="relative m-4 flex items-center gap-2 rounded bg-gray-700 p-2 shadow-md shadow-gray-950/50">
+    <!-- Loading-Bar bei Streaming -->
+    <div
+      v-if="isStreaming"
+      class="absolute bottom-0 left-0 w-full h-1 bg-blue-500 animate-pulse"
+    ></div>
+
     <textarea
       ref="textareaRef"
       v-model="prompt"
       @input="adjustHeight"
+      @keydown.enter.exact.prevent="sendPrompt"
       :disabled="isStreaming"
       rows="1"
       placeholder="Schreibe deine Eingabe..."
@@ -129,3 +107,7 @@ async function sendPrompt() {
     </button>
   </div>
 </template>
+
+<style scoped>
+/* Keine zusätzlichen Styles benötigt */
+</style>
