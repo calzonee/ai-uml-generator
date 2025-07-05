@@ -60,69 +60,53 @@ async function renderDiagram(umlText) {
     let imageSrc = '';
 
     if (selectedFormat.value === 'svg') {
-      // Inline-SVG: immer download=false, responseType text
       const res = await axios.post(
         '/api/uml',
         { plantuml: umlText, download: false },
         { responseType: 'text' }
       );
-      console.log('✅ SVG erhalten, kodiere...');
       imageSrc = encodeSvgToBase64(res.data);
 
     } else {
-      // Echtes PNG per Download-Mode
       const res = await axios.post(
         '/api/uml',
-        { plantuml: umlText, download: true, format: 'png' },
+        { plantuml: umlText, download: true, format:selectedFormat.value },
         { responseType: 'blob' }
       );
-      console.log('✅ PNG-Blob erhalten, erstelle URL...');
       const blob = new Blob([res.data], { type: 'image/png' });
       imageSrc = URL.createObjectURL(blob);
     }
 
     // Diagramm-URL setzen und Event feuern
     renderedDiagramUrl.value = imageSrc;
-    console.log('📡 Diagramm-URL gesetzt:', imageSrc);
     emit('diagramRendered', imageSrc);
 
   } catch (err) {
     console.error('Fehler beim UML Rendern:', err);
   }
 }
-// Nach Stream-Ende rendern
-watch(responseText, (newText) => {
-  if (!isStreaming.value) {
-    console.log('📥 Stream beendet – versuche zu rendern') // Stream-Ende Trigger
-    renderDiagram(newText)
-  }
-})
+
 watch(isStreaming, (streaming, old) => {
   if (old === true && streaming === false) {
-    console.log('✅ Stream beendet – starte automatisches Rendering')
     renderDiagram(responseText.value)
   }
 })
-// Wenn Text im Editor geändert wird
-let debounceTimeout = null
+const DEBOUNCE_MS = 800    
+let debounceId
 
-watch(responseText, (newText, oldText) => {
-  if (isStreaming.value) return
+watch(
+  responseText,
+  (val, old) => {
+    if (isStreaming.value) return
+    if (val.trim() === (old ?? '').trim()) return
 
-  const trimmedNew = newText.trim()
-  const trimmedOld = oldText?.trim()
-
-  if (trimmedNew !== trimmedOld) {
-    console.log('✏️ Editor-Text geändert – debounce gesetzt') // Editor-Änderung
-    if (debounceTimeout) clearTimeout(debounceTimeout)
-    console.log('⏱️ Vorheriges debounce abgebrochen') // Vorherige Verzögerung gestoppt
-
-    debounceTimeout = setTimeout(() => {
-      console.log('⏳ Debounce-Zeit erreicht – rendere Diagramm') // Verzögerung vorbei
-      renderDiagram(trimmedNew)
-    }, 1000)
-  }
-})
+    clearTimeout(debounceId)
+    debounceId = setTimeout(() => {
+      renderDiagram(val.trim())
+    }, DEBOUNCE_MS)
+  },
+  { flush: 'post' }
+)
 </script>
 
 <template>

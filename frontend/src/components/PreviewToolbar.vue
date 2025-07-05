@@ -1,24 +1,35 @@
 <script setup>
-import { inject, defineEmits } from 'vue'
+import { ref, inject, computed, unref } from 'vue'
 
-const selectedFormat = inject('selectedFormat')
-const emits = defineEmits(['downloadClicked'])
+/* Inject mit Fallback als reaktives Ref */
+const selectedFormat = inject('selectedFormat', ref('png'))
+
+/* Schönes Label fürs Button-Caption */
+const formatLabel = computed(() =>
+  (unref(selectedFormat) || 'png').toUpperCase()
+)
+
+const emit = defineEmits(['downloadClicked'])
 
 function download() {
-  emit('downloadClicked')
+  emit('downloadClicked', unref(selectedFormat) || 'png')
 }
 </script>
 
 <template>
   <div
-    class="mb-4 flex h-9 h-[48px] items-center justify-between gap-2 border-t border-b border-zinc-500 bg-zinc-900 px-4 text-white shadow-sm"
+    class="mb-4 flex h-12 items-center justify-between gap-2 border-t border-b border-zinc-500 bg-zinc-900 px-4 text-white shadow-sm"
   >
-    <button
+    <!-- <button
       @click="download"
-      class="rounded bg-blue-700 px-4 py-1 text-sm font-semibold text-white transition-colors duration-150 hover:bg-blue-600 focus:ring-2 focus:ring-blue-400 focus:outline-none active:bg-blue-800"
+      class="rounded bg-blue-700 px-4 py-1 text-sm font-semibold transition-colors duration-150 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 active:bg-blue-800"
       type="button"
     >
-      Download {{ selectedFormat }}
-    </button>
+      Download {{ formatLabel }}
+    </button> -->
   </div>
 </template>
+
+<style scoped>
+/* keine zusätzlichen Styles nötig */
+</style>

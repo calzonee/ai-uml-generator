@@ -6,8 +6,8 @@
       class="rounded bg-zinc-700 px-2 py-1 text-sm text-white focus:ring-2 focus:ring-zinc-400 focus:outline-none"
       v-model="selectedModel"
     >
-      <option value="llama3b" selected>LLaMA 3B</option>
-      <option value="gpt4o">ChatGPT 4o</option>
+      <option value="gpt4o"selected>ChatGPT 4o</option>
+      <option value="llama3b">LLaMA 3B</option>
       <option value="claude">Claude</option>
     </select>
 
@@ -24,6 +24,6 @@
 
 <script setup>
 import { ref } from 'vue'
-const selectedModel = ref('llama3b')
+const selectedModel = ref('gpt4o')
 const selectedFormat = ref('png')
 </script>

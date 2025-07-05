@@ -225,16 +225,21 @@ title Künstliche Intelligenz – Komponenten und Bereiche
 `.trim();
 
 // 4) Helper zum Befüllen des Templates
-function buildPrompt(userInput) {
-  return PROMPT_TEMPLATE.replace("{user_input}", userInput).replace(
-    "{examples}",
-    EXAMPLES
-  );
+function buildPrompt(userInput, diagram = 'none') {
+  let task = userInput
+  if (diagram !== 'none') {
+    task = `${userInput}\n\n(Please output as a *${diagram}* diagram.)`
+  }
+
+  return PROMPT_TEMPLATE
+    .replace('{user_input}', task)
+    .replace('{examples}', EXAMPLES)
 }
 // Helper: call local Ollama (LLaMA)
-async function callLlama(prompt, temperature = 0.7) {
+async function callLlama(prompt, temperature = 0.7,diagram = 'none') {
   console.log("Calling LLaMA with prompt:", prompt);
-  const fullPrompt = buildPrompt(prompt);
+  const fullPrompt = buildPrompt(prompt,diagram);
+  console.log("Full prompt sent to LLaMA:", fullPrompt);
   const resp = await fetch(OLLAMA_API_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -252,10 +257,10 @@ async function callLlama(prompt, temperature = 0.7) {
 }
 
 // Helper: call OpenAI Chat
-async function callOpenAI(prompt, temperature = 0.7) {
+async function callOpenAI(prompt, temperature = 0.7,diagram = 'none') {
   if (!OPENAI_API_KEY) throw new Error("Missing OPENAI_API_KEY");
   console.log("Calling OpenAI with prompt:", prompt);
-  const fullPrompt = buildPrompt(prompt);
+  const fullPrompt = buildPrompt(prompt,diagram);
   const resp = await fetch(OPENAI_API_URL, {
     method: "POST",
     headers: {
@@ -311,7 +316,7 @@ async function renderPlantUML(umlText, format = "svg") {
 
 app.post("/api/prompt", async (req, res) => {
   console.log("Received prompt:", req.body);
-  const { prompt, model = "llama", temperature = 0.7 } = req.body;
+  const { prompt, model = "llama", temperature = 0.7,diagram = 'none' } = req.body;
   if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
     return res
       .status(400)
@@ -322,24 +327,22 @@ app.post("/api/prompt", async (req, res) => {
     // 1) kompletten PlantUML-String holen
     const plantuml =
       model === "gpt4o"
-        ? await callOpenAI(prompt, temperature)
-        : await callLlama(prompt, temperature);
+        ? await callOpenAI(prompt, temperature, diagram)
+        : await callLlama(prompt, temperature,diagram);
 
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
     res.setHeader("Transfer-Encoding", "chunked");
     res.flushHeaders();
 
-    const CHUNK_SIZE = 32; // größer, damit nicht zu viele Chunks
+    const CHUNK_SIZE = 32; 
     for (let i = 0; i < plantuml.length; i += CHUNK_SIZE) {
       const chunk = plantuml.slice(i, i + CHUNK_SIZE);
       res.write(chunk);
-      // kurze Pause, damit auch Proxy/Browser nicht alles puffert:
       await new Promise((r) => setTimeout(r, 50));
     }
     res.end();
   } catch (err) {
     console.error("LLM error", err);
-    // auf Error-Fall als JSON antworten
     res.status(500).json({ error: err.message });
   }
 });

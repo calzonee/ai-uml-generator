@@ -1,47 +1,58 @@
 <script setup>
-import { onMounted, ref, watch, inject } from 'vue'
+import { onMounted, ref, watch, inject,nextTick } from 'vue'
 import { EditorView, basicSetup } from 'codemirror'
 import { oneDark } from '@codemirror/theme-one-dark'
 
 const editorRef = ref(null)
 const view = ref(null)
 const responseText = inject('responseText')
+const isStreaming = inject('isStreaming') // <-- Flag, ob gerade Stream läuft
+
+// Flag, um Zyklen zu verhindern
+let updatingFromStream = false
 
 onMounted(async () => {
-view.value = new EditorView({
-  parent: editorRef.value,
-  doc: '',
-  extensions: [
-    basicSetup,
-    oneDark,
-    EditorView.updateListener.of((update) => {
-      if (update.docChanged) {
-        responseText.value = update.state.doc.toString()
-      }
-    }),
-  ],
-})
+  // Editor initialisieren
+  view.value = new EditorView({
+    parent: editorRef.value,
+    doc: '',
+    extensions: [
+      basicSetup,
+      oneDark,
+      EditorView.updateListener.of((update) => {
+        if (update.docChanged && !updatingFromStream) {
+          responseText.value = update.state.doc.toString()
+        }
+      }),
+    ],
+  })
 
-  // Fake-Streaming-Daten simulieren
   const fakeData = [
     '@startuml\n',
     'Alice -> Bob: Hello\n',
     'Bob --> Alice: Hi!\n',
-    '@enduml\n',
+    '@enduml',
   ]
 
-  for (let part of fakeData) {
-    await new Promise((resolve) => setTimeout(resolve, 500))
-    responseText.value += part
+  isStreaming.value = true
+
+  for (const part of fakeData) {
+    await new Promise(r => setTimeout(r, 500))
+    responseText.value += part 
   }
+  await nextTick()
+  isStreaming.value = false
 })
 
 watch(responseText, (newText) => {
-  if (view.value) {
-    view.value.dispatch({
-      changes: { from: 0, to: view.value.state.doc.length, insert: newText },
-    })
-  }
+  if (!view.value) return
+  if (!isStreaming.value) return 
+
+  updatingFromStream = true
+  view.value.dispatch({
+    changes: { from: 0, to: view.value.state.doc.length, insert: newText },
+  })
+  updatingFromStream = false
 })
 </script>
 
@@ -58,8 +69,4 @@ watch(responseText, (newText) => {
 :deep(.cm-scroller) {
   max-height: 70vh;
 }
-
-/* :deep(.cm-editor) {
-  border-radius: 1rem;
-} */
 </style>
