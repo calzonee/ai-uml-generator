@@ -5,6 +5,7 @@ RUN apk add --no-cache openjdk11-jre graphviz curl
 
 WORKDIR /app
 COPY package*.json ./
+COPY demo.puml ./demo.puml
 RUN npm install --production
 
 # PlantUML JAR herunterladen

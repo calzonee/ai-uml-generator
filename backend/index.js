@@ -5,7 +5,8 @@ import bodyParser from "body-parser";
 import { spawn } from "child_process";
 import fetch from "node-fetch";
 import { Readable } from "stream";
-
+import fs from "fs/promises";
+import path from "path";
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -313,31 +314,52 @@ async function renderPlantUML(umlText, format = "svg") {
  *   { success: true, plantuml: string }
  *   or on error { success: false, error: string }
  */
-
 app.post("/api/prompt", async (req, res) => {
-  console.log("Received prompt:", req.body);
-  const { prompt, model = "llama", temperature = 0.7,diagram = 'none' } = req.body;
+  const { prompt, model = "llama", temperature = 0.7, diagram = "none" } = req.body;
   if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
-    return res
-      .status(400)
-      .json({ error: "Prompt must be a non-empty string." });
+    return res.status(400).json({ error: "Prompt must be a non-empty string." });
+  }
+
+  const norm = prompt.trim().toLowerCase();
+  if (norm === "erkläre diese app") {
+    try {
+const demoPath = path.join(
+  process.cwd(),
+  "demo.puml"
+);
+const plantumlText = await fs.readFile(demoPath, "utf8");
+
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      res.setHeader("Transfer-Encoding", "chunked");
+      res.flushHeaders();
+
+      const CHUNK_SIZE = 32;
+      for (let i = 0; i < plantumlText.length; i += CHUNK_SIZE) {
+        res.write(plantumlText.slice(i, i + CHUNK_SIZE));
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      return res.end();
+    } catch (err) {
+      console.error("Fehler beim Laden des Demo-Diagramms:", err);
+      return res
+        .status(500)
+        .json({ error: `Konnte Demo-Diagramm nicht laden: ${err.message}` });
+    }
   }
 
   try {
-    // 1) kompletten PlantUML-String holen
     const plantuml =
       model === "gpt4o"
         ? await callOpenAI(prompt, temperature, diagram)
-        : await callLlama(prompt, temperature,diagram);
+        : await callLlama(prompt, temperature, diagram);
 
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
     res.setHeader("Transfer-Encoding", "chunked");
     res.flushHeaders();
 
-    const CHUNK_SIZE = 32; 
+    const CHUNK_SIZE = 32;
     for (let i = 0; i < plantuml.length; i += CHUNK_SIZE) {
-      const chunk = plantuml.slice(i, i + CHUNK_SIZE);
-      res.write(chunk);
+      res.write(plantuml.slice(i, i + CHUNK_SIZE));
       await new Promise((r) => setTimeout(r, 50));
     }
     res.end();
@@ -346,7 +368,6 @@ app.post("/api/prompt", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 /**
  * POST /api/uml
  * Request JSON:
