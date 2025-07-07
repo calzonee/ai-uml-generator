@@ -27,10 +27,10 @@ function download () {
         v-model="selectedModel"
         class="rounded bg-zinc-700 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400"
       >
-        <option value="llama3b">LLaMA&nbsp;3B</option>
+        <option value="llama3:8b">LLaMA&nbsp;8B</option>
         <option value="gpt4o">ChatGPT&nbsp;4o</option>
         <option value="o3">ChatGPT&nbsp;o3</option>
-        <option value="claude">Claude</option>
+        <!-- <option value="claude">Claude</option> -->
       </select>
     </div>
 

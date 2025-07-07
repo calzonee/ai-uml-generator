@@ -1,3 +1,2 @@
 #!/bin/bash
-# docker compose exec ollama ollama pull llama3:8b
-docker compose exec ollama ollama pull llama3:3b
+docker compose exec ollama ollama pull llama3:8b

@@ -238,9 +238,11 @@ function buildPrompt(userInput, diagram = 'none') {
 }
 // Helper: call local Ollama (LLaMA)
 async function callLlama(prompt, temperature = 0.7,diagram = 'none') {
-  console.log("Calling LLaMA with prompt:", prompt);
+  // console.log("Calling LLaMA with prompt:", prompt);
   const fullPrompt = buildPrompt(prompt,diagram);
-  console.log("Full prompt sent to LLaMA:", fullPrompt);
+  // console.log("Full prompt sent to LLaMA:", fullPrompt);
+  console.log("URL:", OLLAMA_API_URL, "MODEL:", LLAMA_MODEL);
+
   const resp = await fetch(OLLAMA_API_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
