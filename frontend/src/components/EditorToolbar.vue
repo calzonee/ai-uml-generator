@@ -29,6 +29,7 @@ function download () {
       >
         <option value="llama3b">LLaMA&nbsp;3B</option>
         <option value="gpt4o">ChatGPT&nbsp;4o</option>
+        <option value="o3">ChatGPT&nbsp;o3</option>
         <option value="claude">Claude</option>
       </select>
     </div>

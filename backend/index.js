@@ -348,10 +348,10 @@ const plantumlText = await fs.readFile(demoPath, "utf8");
   }
 
   try {
-    const plantuml =
-      model === "gpt4o"
-        ? await callOpenAI(prompt, temperature, diagram)
-        : await callLlama(prompt, temperature, diagram);
+  const openAIModels = ["gpt4o", "o3", "o3-mini", "o3-pro"];
+  const plantuml = openAIModels.includes(model)
+    ? await callOpenAI(prompt, temperature, diagram)
+            : await callLlama(prompt, temperature, diagram);
 
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
     res.setHeader("Transfer-Encoding", "chunked");

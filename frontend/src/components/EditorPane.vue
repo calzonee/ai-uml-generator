@@ -15,7 +15,7 @@ const props = defineProps({
 })
 
 // Toolbar-Status
-const selectedModel = ref('llama3b')
+const selectedModel = ref('gpt4o')
 provide('selectedModel', selectedModel)
 const selectedDiagram = ref('none')
 provide('selectedDiagram', selectedDiagram)
