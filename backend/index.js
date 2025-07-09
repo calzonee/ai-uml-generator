@@ -223,6 +223,34 @@ title Künstliche Intelligenz – Komponenten und Bereiche
 *** Big Data
 *** Cloud Computing
 @endmindmap
+
+// 12) Chomsky Hierarchy with icons and blue color
+@startuml
+!include <tupadr3/common>
+!include <tupadr3/font-awesome/cogs>
+!include <tupadr3/font-awesome/database>
+!include <tupadr3/font-awesome/sitemap>
+!include <tupadr3/font-awesome/code>
+
+skinparam rectange {
+  BorderColor black
+  RoundCorner 20
+}
+skinparam defaultTextAlignment center
+skinparam shadowing false
+
+title Chomsky-Hierarchie
+
+rectangle "Typ-0\n<$cogs>\nRekursiv aufzählbar\n(Turingmaschinen)" as Typ0 #caf0f8 {
+  rectangle "Typ-1\n<$database>\nKontextsensitive Sprachen\n(LBA)" as Typ1 #90e0ef {
+    rectangle "Typ-2\n<$sitemap>\nKontextfreie Sprachen\n(Kellerautomaten)" as Typ2 #48cae4 {
+      rectangle "Typ-3\n<$code>\nReguläre Sprachen\n(RegEx / DFA / NFA)" as Typ3 #0077b6
+    }
+  }
+}
+@enduml
+
+
 `.trim();
 
 // 4) Helper zum Befüllen des Templates
@@ -309,8 +337,8 @@ async function renderPlantUML(umlText, format = "svg") {
  * POST /api/prompt
  * Request JSON:
  *   { prompt: string,             // User prompt for diagram generation (required)
- *     model?: 'llama'|'openai',   // Choose backend (default: 'llama')
- *     temperature?: number        // Sampling temperature 0.0 - 1.0 (default: 0.7)
+ *     model?: 'llama'|'openai',   // Choose backend
+ *     temperature?: number        // Sampling temperature 0.0 - 1.0 
  *   }
  * Response JSON:
  *   { success: true, plantuml: string }
@@ -321,34 +349,39 @@ app.post("/api/prompt", async (req, res) => {
   if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
     return res.status(400).json({ error: "Prompt must be a non-empty string." });
   }
+const norm = prompt.trim().toLowerCase();
 
-  const norm = prompt.trim().toLowerCase();
-  if (norm === "erkläre diese app") {
-    try {
-const demoPath = path.join(
-  process.cwd(),
-  "demo.puml"
-);
-const plantumlText = await fs.readFile(demoPath, "utf8");
+const triggers = [
+  "erkläre diese app",
+  "wie funktioniert chatuml",
+  "wie funktioniert chatuml?",
+];
 
-      res.setHeader("Content-Type", "text/plain; charset=utf-8");
-      res.setHeader("Transfer-Encoding", "chunked");
-      res.flushHeaders();
+if (triggers.includes(norm)) {
+  try {
+    const demoPath = path.join(
+      process.cwd(),
+      "demo.puml"
+    );
+    const plantumlText = await fs.readFile(demoPath, "utf8");
 
-      const CHUNK_SIZE = 32;
-      for (let i = 0; i < plantumlText.length; i += CHUNK_SIZE) {
-        res.write(plantumlText.slice(i, i + CHUNK_SIZE));
-        await new Promise((r) => setTimeout(r, 50));
-      }
-      return res.end();
-    } catch (err) {
-      console.error("Fehler beim Laden des Demo-Diagramms:", err);
-      return res
-        .status(500)
-        .json({ error: `Konnte Demo-Diagramm nicht laden: ${err.message}` });
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.setHeader("Transfer-Encoding", "chunked");
+    res.flushHeaders();
+
+    const CHUNK_SIZE = 32;
+    for (let i = 0; i < plantumlText.length; i += CHUNK_SIZE) {
+      res.write(plantumlText.slice(i, i + CHUNK_SIZE));
+      await new Promise((r) => setTimeout(r, 50));
     }
+    return res.end();
+  } catch (err) {
+    console.error("Fehler beim Laden des Demo-Diagramms:", err);
+    return res
+      .status(500)
+      .json({ error: `Konnte Demo-Diagramm nicht laden: ${err.message}` });
   }
-
+}
   try {
   const openAIModels = ["gpt4o", "o3", "o3-mini", "o3-pro"];
   const plantuml = openAIModels.includes(model)
